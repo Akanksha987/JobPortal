@@ -1,34 +1,18 @@
-import express from "express";
-import mongoose from "mongoose";
-import jobRouter from "./routes/jobRoutes.js";
-import { config } from "dotenv";
-import cors from "cors";
-import { errorMiddleware } from "./middlewares/error.js";
-import cookieParser from "cookie-parser";
-import fileUpload from "express-fileupload";
+const express=require("express");
+const app=express();
+const mongoose=require("mongoose");
+const morgan=require("morgan");
+const bodyParser=require("body-parser");
+require("dotenv").config();
+const cors=require("cors");
+const port=process.env.PORT||8000
+const cookieParser=require("cookie-parser");
+const errorHandler = require("./middlewares/error");
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 
-const app = express();
-config({ path: "./config/config.env" });
 
-app.use(
-  cors({
-    origin: [process.env.FRONTEND_URL],
-    method: ["GET", "POST", "DELETE", "PUT"],
-    credentials: true,
-  })
-);
-
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(
-  fileUpload({
-    useTempFiles: true,
-    tempFileDir: "/tmp/",
-  })
-);
-app.use("/api/v1/user", userRouter);
+// database connection
 mongoose
     .connect(process.env.MONGO_URI, {
       dbName: "MERN_JOB_SEEKING_WEBAPP",
@@ -40,5 +24,26 @@ mongoose
       console.log(`Some Error occured. ${err}`);
     });
 
-app.use(errorMiddleware);
-export default app;
+// Middleware
+
+app.use(morgan('dev'));
+app.use(bodyParser.json({limit:"5mb"}));
+app.use(bodyParser.urlencoded({
+    limit:"5mb",
+    extended:true,
+}));
+app.use(cookieParser());
+app.use(cors());
+
+// routes middleware
+app.use('/api',authRoutes);
+app.use('/api', userRoutes);
+
+// error middleware
+app.use(errorHandler);
+
+
+// port calling
+app.listen(port,()=>{
+    console.log(`Listening at port ${port}`)
+})

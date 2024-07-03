@@ -1,12 +1,21 @@
-import express from "express";
-import { login, register, logout, getUser } from "../controllers/userController.js";
-import { isAuthenticated } from "../middlewares/auth.js";
-
+const express = require('express');
 const router = express.Router();
+const { allUsers, singleUser, editUser, deleteUser } = require('../controllers/userController');
+const { isAuthenticated, isAdmin } = require('../middlewares/auth');
 
-router.post("/register", register);
-router.post("/login", login);
-router.get("/logout", isAuthenticated, logout);
-router.get("/getuser", isAuthenticated, getUser);
 
-export default router;
+//user routes
+
+// /api/allusers
+router.get('/allusers', isAuthenticated, isAdmin, allUsers);
+// /api/user/id
+router.get('/user/:id', isAuthenticated, singleUser);
+// /api/user/edit/id
+router.put('/user/edit/:id', isAuthenticated, editUser);
+// /api/admin/user/delete/id
+router.delete('/admin/user/delete/:id', isAuthenticated, isAdmin, deleteUser);
+
+
+
+
+module.exports = router;

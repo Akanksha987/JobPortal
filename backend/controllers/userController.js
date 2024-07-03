@@ -1,66 +1,80 @@
-import { catchAsyncErrors } from "../middlewares/catchAsyncError.js";
-import { User } from "../models/userSchema.js";
-import ErrorHandler from "../middlewares/error.js";
-import { sendToken } from "../utils/jwtToken.js";
+const User = require('../models/userModel');
+const ErrorResponse = require('../utils/errorResponse');
 
-export const register = catchAsyncErrors(async (req, res, next) => {
-  const { name, email, phone, password, role } = req.body;
-  if (!name || !email || !phone || !password || !role) {
-    return next(new ErrorHandler("Please fill full form!"));
-  }
-  const isEmail = await User.findOne({ email });
-  if (isEmail) {
-    return next(new ErrorHandler("Email already registered!"));
-  }
-  const user = await User.create({
-    name,
-    email,
-    phone,
-    password,
-    role,
-  });
-  sendToken(user, 201, res, "User Registered!");
-});
+//load all users
+exports.allUsers = async (req, res, next) => {
+    //enable pagination
+    const pageSize = 10;
+    const page = Number(req.query.pageNumber) || 1;
+    const count = await User.find({}).estimatedDocumentCount();
 
-export const login = catchAsyncErrors(async (req, res, next) => {
-  const { email, password, role } = req.body;
-  if (!email || !password || !role) {
-    return next(new ErrorHandler("Please provide email ,password and role."));
-  }
-  const user = await User.findOne({ email }).select("+password");
-  if (!user) {
-    return next(new ErrorHandler("Invalid Email Or Password.", 400));
-  }
-  const isPasswordMatched = await user.comparePassword(password);
-  if (!isPasswordMatched) {
-    return next(new ErrorHandler("Invalid Email Or Password.", 400));
-  }
-  if (user.role !== role) {
-    return next(
-      new ErrorHandler(`User with provided email and ${role} not found!`, 404)
-    );
-  }
-  sendToken(user, 201, res, "User Logged In!");
-});
+    try {
+        const users = await User.find().sort({ createdAt: -1 }).select('-password')
+            .skip(pageSize * (page - 1))
+            .limit(pageSize)
 
-export const logout = catchAsyncErrors(async (req, res, next) => {
-  res
-    .status(201)
-    .cookie("token", "", {
-      httpOnly: true,
-      expires: new Date(Date.now()),
-    })
-    .json({
-      success: true,
-      message: "Logged Out Successfully.",
-    });
-});
+        res.status(200).json({
+            success: true,
+            users,
+            page,
+            pages: Math.ceil(count / pageSize),
+            count
+
+        })
+        next();
+    } catch (error) {
+        return next(error);
+    }
+}
+
+//show single user
+exports.singleUser = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.params.id);
+        res.status(200).json({
+            success: true,
+            user
+        })
+        next();
+
+    } catch (error) {
+        return next(error);
+    }
+}
 
 
-export const getUser = catchAsyncErrors((req, res, next) => {
-  const user = req.user;
-  res.status(200).json({
-    success: true,
-    user,
-  });
-});
+//edit user
+exports.editUser = async (req, res, next) => {
+    try {
+        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.status(200).json({
+            success: true,
+            user
+        })
+        next();
+
+    } catch (error) {
+        return next(error);
+    }
+}
+
+//delete user
+// delete user
+exports.deleteUser = async (req, res, next) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "User deleted"
+        });
+        next();
+    } catch (error) {
+        return next(new ErrorResponse("Server Error", 500));
+    }
+}

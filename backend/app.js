@@ -10,8 +10,8 @@ const cookieParser=require("cookie-parser");
 const errorHandler = require("./middlewares/error");
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
-
-
+const jobRoute=require('./routes/jobsRoutes')
+const jobTypeRoute=require("./routes/jobsTypeRoutes")
 // database connection
 mongoose
     .connect(process.env.MONGO_URI, {
@@ -38,6 +38,8 @@ app.use(cors());
 // routes middleware
 app.use('/api',authRoutes);
 app.use('/api', userRoutes);
+app.use('/api', jobTypeRoute);
+app.use('/api', jobRoute);
 
 // error middleware
 app.use(errorHandler);

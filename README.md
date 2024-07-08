@@ -23,7 +23,7 @@ The Job Portal application is a web-based platform designed to connect job seeke
 
 ## **Technologies Used**
 - **Frontend:**
-  - React.js+vite
+  - React.js
 - **Backend:**
   - Node.js
   - Express.js

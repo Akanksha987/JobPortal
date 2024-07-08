@@ -7,7 +7,7 @@ require("dotenv").config();
 const cors=require("cors");
 const port=process.env.PORT||8000
 const cookieParser=require("cookie-parser");
-const errorHandler = require("./middlewares/error");
+const errorHandler = require("./middleware/error");
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const jobRoute=require('./routes/jobsRoutes')

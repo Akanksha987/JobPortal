@@ -1,3 +1,4 @@
+
 const User = require('../models/userModel');
 const ErrorResponse = require('../utils/errorResponse');
 
@@ -59,22 +60,48 @@ exports.editUser = async (req, res, next) => {
 }
 
 //delete user
-// delete user
 exports.deleteUser = async (req, res, next) => {
     try {
-        const user = await User.findByIdAndDelete(req.params.id);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
+        const user = await User.findByIdAndRemove(req.params.id);
         res.status(200).json({
             success: true,
-            message: "User deleted"
-        });
+            message: "user deleted"
+        })
         next();
+
     } catch (error) {
-        return next(new ErrorResponse("Server Error", 500));
+        return next(error);
+    }
+}
+
+
+//jobs history
+exports.createUserJobsHistory = async (req, res, next) => {
+    const { title, description, salary, location } = req.body;
+
+    try {
+        const currentUser = await User.findOne({ _id: req.user._id });
+        if (!currentUser) {
+            return next(new ErrorResponse("You must log In", 401));
+        } else {
+            const addJobHistory = {
+                title,
+                description,
+                salary,
+                location,
+                user: req.user._id
+            }
+            currentUser.jobsHistory.push(addJobHistory);
+            await currentUser.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            currentUser
+        })
+        next();
+
+    } catch (error) {
+        return next(error);
     }
 }

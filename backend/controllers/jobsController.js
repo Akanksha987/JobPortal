@@ -53,48 +53,56 @@ exports.updateJob = async (req, res, next) => {
 
 //update job by id.
 exports.showJobs = async (req, res, next) => {
+
+    //enable search 
+    const keyword = req.query.keyword ? {
+        title: {
+            $regex: req.query.keyword,
+            $options: 'i'
+        }
+    } : {}
+
+
+    // filter jobs by category ids
+    let ids = [];
+    const jobTypeCategory = await JobType.find({}, { _id: 1 });
+    jobTypeCategory.forEach(cat => {
+        ids.push(cat._id);
+    })
+
+    let cat = req.query.cat;
+    let categ = cat !== '' ? cat : ids;
+
+
+    //jobs by location
+    let locations = [];
+    const jobByLocation = await Job.find({}, { location: 1 });
+    jobByLocation.forEach(val => {
+        locations.push(val.location);
+    });
+    let setUniqueLocation = [...new Set(locations)];
+    let location = req.query.location;
+    let locationFilter = location !== '' ? location : setUniqueLocation;
+
+
+    //enable pagination
+    const pageSize = 5;
+    const page = Number(req.query.pageNumber) || 1;
+    //const count = await Job.find({}).estimatedDocumentCount();
+    const count = await Job.find({ ...keyword, jobType: categ, location: locationFilter }).countDocuments();
+
     try {
-        // Enable search 
-        const keyword = req.query.keyword ? {
-            title: {
-                $regex: req.query.keyword,
-                $options: 'i'
-            }
-        } : {};
-
-        // Filter jobs by category IDs
-        let ids = [];
-        const jobTypeCategory = await JobType.find({}, { _id: 1 });
-        jobTypeCategory.forEach(cat => {
-            ids.push(cat._id);
-        });
-
-        let cat = req.query.cat;
-        let categ = cat && cat !== '' ? cat : ids;
-
-        // Log the IDs being used for filtering
-        console.log('Filtering by jobType IDs:', categ);
-
-        // Enable pagination
-        const pageSize = 5;
-        const page = Number(req.query.pageNumber) || 1;
-
-        // Count the total number of jobs matching the query
-        const count = await Job.find({ ...keyword, jobType: { $in: categ } }).countDocuments();
-
-        // Find the jobs matching the query with pagination
-        const jobs = await Job.find({ ...keyword, jobType: { $in: categ } })
-            .skip(pageSize * (page - 1))
-            .limit(pageSize);
-
+        const jobs = await Job.find({ ...keyword, jobType: categ, location: locationFilter }).sort({ createdAt: -1 }).skip(pageSize * (page - 1)).limit(pageSize)
         res.status(200).json({
             success: true,
             jobs,
             page,
             pages: Math.ceil(count / pageSize),
-            count
-        });
+            count,
+            setUniqueLocation
+
+        })
     } catch (error) {
         next(error);
     }
-};
+}
